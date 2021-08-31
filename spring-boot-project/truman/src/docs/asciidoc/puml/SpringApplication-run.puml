@@ -1,0 +1,216 @@
+@startuml
+header D瓜哥 · ""https://www.diguage.com""
+
+title **Spring Boot 启动流程**
+
+actor Actor
+participant SpringApplication << (C,#ADD1B2) >>
+participant SpringFactoriesLoader << (C,#ADD1B2) >>
+participant SpringApplicationRunListener << (I,#AB9DE1) >>
+participant ApplicationContextInitializer << (I,#AB9DE1) >>
+participant ConfigurableApplicationContext << (I,#AB9DE1) >>
+participant Runner << (I,#AB9DE1) >>
+
+Actor -> SpringApplication: ""SpringApplication""\n创建 ""SpringApplication"" 实例
+activate SpringApplication
+
+    SpringApplication -> SpringFactoriesLoader: ""load""\n加载 ""BootstrapRegistryInitializer""
+    note right: 默认没有实现类
+    activate SpringFactoriesLoader
+    |||
+    SpringApplication <- SpringFactoriesLoader
+    deactivate SpringFactoriesLoader
+
+    |||
+
+    SpringApplication -> SpringApplication: ""setInitializers""\n设置 ""ApplicationContextInitializer""
+    note left: 这里是拿下面 ""load"" \n方法的返回值去设置。
+    activate SpringApplication
+		SpringApplication -> SpringFactoriesLoader: ""load""\n加载 ""ApplicationContextInitializer""
+		activate SpringFactoriesLoader
+		|||
+		SpringApplication <- SpringFactoriesLoader
+		deactivate SpringFactoriesLoader
+    SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+    |||
+
+    SpringApplication -> SpringApplication: ""setListeners""\n设置 ""ApplicationListener""
+    note left: 这里是拿下面 ""load"" \n方法的返回值去设置。
+    activate SpringApplication
+		SpringApplication -> SpringFactoriesLoader: ""load""\n加载 ""ApplicationListener""
+		activate SpringFactoriesLoader
+		|||
+		SpringApplication <- SpringFactoriesLoader
+		deactivate SpringFactoriesLoader
+    SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+    |||
+
+    SpringApplication -> SpringApplication: ""deduceMainApplicationClass""\n确定 Main 类
+    activate SpringApplication
+	|||
+    SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+Actor <- SpringApplication: ""SpringApplication""
+deactivate SpringApplication
+
+====
+
+Actor -> SpringApplication: ""run""\n启动 Spring Boot
+activate SpringApplication
+
+    SpringApplication -> SpringApplication: ""getRunListeners""\n获取 ""SpringApplicationRunListeners""
+    note right: 将 ""SpringApplicationRunListener"" 集合\n封装到 ""SpringApplicationRunListeners"" 对\n象中，方便后续的遍历操作。
+    activate SpringApplication
+		SpringApplication -> SpringFactoriesLoader: ""load""\n加载 ""SpringApplicationRunListener""
+		activate SpringFactoriesLoader
+		|||
+		SpringApplication <- SpringFactoriesLoader
+		deactivate SpringFactoriesLoader
+    SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+    |||
+
+	loop 通知所有 ""SpringApplicationRunListener"" 监听器
+        SpringApplication -> SpringApplicationRunListener: ""starting""
+        note right #ff7d61: 只有一个实现类： ""EventPublishingRunListener""。\n该类其实有些“名不副实”，私以为叫 “Multicaster” 更合适。\n因为此类只发布事件，通过 ""SimpleApplicationEventMulticaster""\n类型的实例属性，将事件广播出去。\n而真正监听事件并做出相应的是 ""ApplicationListener"" 实例。这些实\n例从 ""SpringApplication"" 实例中获取，然后注册到上面的\n""SimpleApplicationEventMulticaster"" 实例内。
+        activate SpringApplicationRunListener
+        |||
+        SpringApplication <- SpringApplicationRunListener
+        deactivate SpringApplicationRunListener
+    end
+
+    |||
+
+    SpringApplication -> SpringApplication: ""getOrCreateEnvironment""\n创建 ""ConfigurableEnvironment"" 对象\n准备环境变量等相关配置信息
+    activate SpringApplication
+    |||
+    SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+    |||
+
+	loop 通知所有 ""SpringApplicationRunListener"" 监听器
+        SpringApplication -> SpringApplicationRunListener: ""environmentPrepared""
+        activate SpringApplicationRunListener
+        |||
+        SpringApplication <- SpringApplicationRunListener
+        deactivate SpringApplicationRunListener
+    end
+
+    |||
+
+    SpringApplication -> SpringApplication: ""createApplicationContext""\n创建 ""ConfigurableApplicationContext"" 对象
+    activate SpringApplication
+    |||
+    SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+    |||
+
+    SpringApplication -> SpringApplication: ""prepareContext""\n配置 ""ConfigurableApplicationContext""
+    activate SpringApplication
+
+		|||
+
+		loop 调用所有 ""ApplicationContextInitializer""
+			SpringApplication -> ApplicationContextInitializer: ""initialize""
+			activate ApplicationContextInitializer
+			note over SpringApplication,ApplicationContextInitializer: 调用 ""ApplicationContextInitializer""，对 ""ConfigurableApplicationContext"" 进行初始化。
+			SpringApplication <- ApplicationContextInitializer
+			deactivate ApplicationContextInitializer
+		end
+
+		|||
+
+		loop 通知所有 ""SpringApplicationRunListener"" 监听器
+			SpringApplication -> SpringApplicationRunListener: ""contextPrepared""
+			activate SpringApplicationRunListener
+			|||
+			SpringApplication <- SpringApplicationRunListener
+			deactivate SpringApplicationRunListener
+		end
+
+		note over SpringApplication,SpringApplicationRunListener:在此配置 ""ConfigurableApplicationContext""，\n主要是注册一些 Bean，两个 ""BeanFactoryPostProcessor"": \n#""LazyInitializationBeanFactoryPostProcessor""\n#""PropertySourceOrderingBeanFactoryPostProcessor""
+
+		|||
+
+		loop 通知所有 ""SpringApplicationRunListener"" 监听器
+			SpringApplication -> SpringApplicationRunListener: ""contextLoaded""
+			activate SpringApplicationRunListener
+			|||
+			SpringApplication <- SpringApplicationRunListener
+			deactivate SpringApplicationRunListener
+		end
+
+		|||
+    SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+	|||
+
+	SpringApplication -> SpringApplication: ""refreshContext""\n""ConfigurableApplicationContext"" 刷新
+	activate SpringApplication #FF33FF
+
+		SpringApplication -> ConfigurableApplicationContext: ""refresh""
+		note left: ！！！重点 ！！！\npring 容器开始 refresh
+		activate ConfigurableApplicationContext
+		|||
+		SpringApplication <- ConfigurableApplicationContext
+		deactivate ConfigurableApplicationContext
+
+	SpringApplication -> SpringApplication
+    deactivate SpringApplication
+
+    |||
+
+	loop 通知所有 ""SpringApplicationRunListener"" 监听器
+        SpringApplication -> SpringApplicationRunListener: ""started""
+        note over SpringApplication,SpringApplicationRunListener: 给所有实现 ""ApplicationContextAware"" 接口的 ""ApplicationListener"" 实例设置容器对象。\n然后将所有的 ""ApplicationListener"" 实例，都添加到 Spring 容器中。后续通知通过容器来发布。
+        activate SpringApplicationRunListener
+        SpringApplication <- SpringApplicationRunListener
+        deactivate SpringApplicationRunListener
+    end
+
+    |||
+
+	loop 依次调用所有 ""Runner""
+        SpringApplication -> Runner: ""run""
+        note over SpringApplication,Runner:这里依次调用两种 ""Runner""\n#""ApplicationRunner""\n#""CommandLineRunner""
+        activate Runner
+        SpringApplication <- Runner
+        deactivate Runner
+    end
+
+    |||
+
+	alt #D5E8D4 启动成功
+		loop 通知所有 ""SpringApplicationRunListener"" 监听器
+			SpringApplication -> SpringApplicationRunListener: ""ready""
+			activate SpringApplicationRunListener
+			|||
+			SpringApplication <- SpringApplicationRunListener
+			deactivate SpringApplicationRunListener
+		end
+	else #F8CECC 启动失败
+		loop 通知所有 ""SpringApplicationRunListener"" 监听器
+			SpringApplication -> SpringApplicationRunListener: ""failed""
+			activate SpringApplicationRunListener
+			|||
+			SpringApplication <- SpringApplicationRunListener
+			deactivate SpringApplicationRunListener
+		end
+	end
+
+
+Actor <- SpringApplication: ""ApplicationContext""
+deactivate SpringApplication
+
+
+footer D瓜哥 · ""https://www.diguage.com"" · 出品
+@enduml

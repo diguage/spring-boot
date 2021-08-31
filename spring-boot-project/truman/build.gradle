@@ -1,0 +1,151 @@
+plugins {
+	id "java-library"
+    id "org.springframework.boot.conventions" // 检查代码风格
+	id 'org.asciidoctor.jvm.convert' version '4.0.4'
+	id 'org.asciidoctor.jvm.pdf' version '4.0.4'
+	id 'org.asciidoctor.jvm.gems' version '4.0.4'
+	id 'org.asciidoctor.editorconfig' version '4.0.4'
+}
+
+description = "Truman：Spring Boot Source Analysis"
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+dependencies {
+	asciidoctorGems 'rubygems:rouge:4.5.1'
+	asciidoctorGems "rubygems:asciidoctor-multipage:0.0.19"
+	asciidoctorGems "rubygems:asciidoctor-comment-links:0.0.2"
+
+	api(platform(project(path: ":spring-boot-project:spring-boot-parent")))
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    api(project(path: ":spring-boot-project:spring-boot-starters:spring-boot-starter-web"))
+    api(project(path: ":spring-boot-project:spring-boot-starters:spring-boot-starter-logging"))
+
+	api(project(path: ":spring-boot-project:spring-boot-devtools"))
+
+//    TODO 如何使用 log4j 2
+//    api(project(":spring-boot-project:spring-boot-starters:spring-boot-starter-web")) {
+//        exclude module: "spring-boot-starter-logging"
+//    }
+//    api(project(":spring-boot-project:spring-boot-starters:spring-boot-starter-log4j2"))
+
+    api(project(path: ":spring-boot-project:spring-boot-starters:spring-boot-starter-test"))
+}
+
+asciidoctor {
+	// 加载必要的 Gem
+	dependsOn asciidoctorGemsPrepare
+	// configurations 'asciidoctorExt'
+	// configurations 'asciidoctorExtensions'
+
+	baseDirFollowsSourceDir()
+
+	sources {
+		include 'index.adoc'
+	}
+	outputDir = file('build/docs/html5')
+	forkOptions {
+		jvmArgs += ["--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED",
+					"--add-opens", "java.base/java.io=ALL-UNNAMED"]
+	}
+	logDocuments = true
+}
+
+asciidoctorj {
+	requires 'rouge'
+	// https://github.com/owenh000/asciidoctor-multipage
+	// requires 'asciidoctor-multipage'
+	// requires 'asciidoctor-comment-links'
+
+	def sourceAttr = 'linenums,indent=0,subs="attributes,verbatim"'
+
+    version = '3.0.0'
+	jrubyVersion = '9.4.12.0'
+    fatalWarnings ".*"
+    options doctype: 'book', eruby: 'erubis'
+    attributes([
+            author: 'D瓜哥',
+            email: 'https://www.diguage.com',
+            revnumber: project.version,
+            icons: 'font',
+            idprefix: '',
+            idseparator: '-',
+            docinfo: 'shared',
+            sectanchors: '',
+            sectnums: '',
+            'source-highlighter': 'rouge',
+            'rouge-style': 'github', // molokai, monokai, github, gruvbox
+            linkcss: true,
+            toc: 'left',
+            toclevels: 4,
+            sectnums: false,
+            sectnumlevels: 4,
+            sectanchors: true,
+            fontsDir: 'cfg/fonts',
+            graphvizdot: '/usr/local/bin/dot',
+            stylesdir: 'css',
+            homepage: 'https://www.diguage.com',
+			plantumlconfig: "${getProjectOperations().projectDir}/cfg/plantuml.cfg",
+			scripts: "cjk",
+			// backend: 'multipage_html5',
+
+            'boot-version': project.version,
+            'source_attr': sourceAttr,
+            'java_src_attr': "source%nowrap,java,${sourceAttr}",
+            'xml_src_attr': "source%nowrap,xml,${sourceAttr}",
+            'image_attr': 'align="center",width=98%',
+            'diagram_attr': 'format=svg,align="center",width=98%',
+			'truman_src_dir'     : "${getProjectOperations().projectDir}/src/main/java/com/diguage/truman",
+			'truman_resource_dir': "${getProjectOperations().projectDir}/src/main/resources/com/diguage/truman",
+    ])
+    modules {
+		pdf {
+			version '2.3.19'
+		}
+		epub {
+			version '2.1.3'
+		}
+		diagram {
+			version '2.3.1'
+		}
+    }
+}
+
+asciidoctorPdf {
+	dependsOn asciidoctorGemsPrepare
+
+	baseDirFollowsSourceDir()
+	asciidoctorj {
+		requires 'rouge'
+
+		attributes "build-gradle": file('build.gradle'),
+				"pdf-fontsdir": "${getProjectOperations().projectDir}/cfg/fonts;GEM_FONTS_DIR;",
+				"pdf-themesdir": "${getProjectOperations().projectDir}/cfg/theme",
+				"pdf-theme": "Source",
+				"source-highlighter": 'rouge',
+				"image_attr": 'align="center",pdfwidth=98%',
+				"diagram_attr": 'format=png,align="center",pdfwidth=98%'
+	}
+	sources {
+		include 'index.adoc'
+	}
+	outputDir = file('build/docs/pdf')
+	forkOptions {
+		jvmArgs += ["--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED",
+					"--add-opens", "java.base/java.io=ALL-UNNAMED"]
+	}
+	logDocuments = true
+}
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+	ruby.gems()
+}
