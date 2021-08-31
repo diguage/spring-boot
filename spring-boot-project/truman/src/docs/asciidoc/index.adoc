@@ -1,0 +1,22 @@
+= Spring Boot 源码分析^Alpha^
+include::{includedir}/_attributes.adoc[]
+
+:!sectnums:
+
+include::{includedir}/preface.adoc[leveloffset=+1]
+
+:sectnums:
+
+
+== 启动流程
+
+[{java_src_attr}]
+----
+include::{truman_src_dir}/TrumanApplication.java[]
+----
+
+
+[{java_src_attr}]
+----
+include::{truman_src_dir}/MockBeanTest.java[]
+----
