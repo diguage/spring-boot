@@ -39,6 +39,8 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.util.ErrorHandler;
 
 /**
+ * 事件发布监听器
+ *
  * {@link SpringApplicationRunListener} to publish {@link SpringApplicationEvent}s.
  * <p>
  * Uses an internal {@link ApplicationEventMulticaster} for the events that are fired
@@ -72,6 +74,47 @@ class EventPublishingRunListener implements SpringApplicationRunListener, Ordere
 
 	@Override
 	public void starting(ConfigurableBootstrapContext bootstrapContext) {
+		/**
+		 * 这个类需要大篇幅介绍
+		 * 这个类工作方式有点抽象，有点难以理解，我这里说清楚一点。
+		 * 1、首先他会广播一个事件
+		 *   对应代码 for (ApplicationListener<?> listener : getApplicationListeners(event, type))
+		 *   getApplicationListeners(event, type) 干了两件事情，首先传了两个参数
+		 *   这两个参数就是事件类型，意思告诉所有的监听器现在有了一个 type 类型的 event，你们感兴趣不？
+		 *
+		 * 2、告诉所有的监听器
+		 *   getApplicationListeners 告诉所有的监听器（遍历所有的监听器）
+		 *   然后监听器会接受到这个事件，继而监听器会判断这个事件自己感兴趣不
+		 *   关于监听器如何知道自己感兴趣不？Spring 做的比较复杂，其实看源码就不复杂。
+		 *   主要有两个步骤来确定：
+		 *
+		 *     第一步：两个方法确定：
+		 *       1.1、supportEventType(eventType)
+		 *       1.2、smartListener.supportsSourceType(sourceType)
+		 *       上面两个方法可以见到理解通过传入一个事件类型返回一个boolean
+		 *       任意一个返回false表示这个监听器对eventType的时间不感兴趣
+		 *       如果感兴趣被add到一个list中，再由后续的代码中依次执行方法调用
+		 *
+		 *     第二个步：在监听器回调的时候，还是可以进行事件类型判断的
+		 *         如果时间类型不感兴趣上面都不执行就可以
+		 *
+		 * 3、获取所有对这个事件感兴趣的监听器，遍历执行其 onApplicationEvent 方法
+		 *     这里的代码传入了一个 ApplicationStartingEvent 的事件过去
+		 *     那么在 SpringBoot 当中，定义的 11 个监听器哪些监听器对这个事件感兴趣？
+		 *     或者换句话说哪些监听器订阅了这个事件呢？
+		 *     先看结果一个是听歌监听器
+		 *     为什么是这五个监听器？
+		 *     根据上述第二点的第一个步骤我们可以去查看源代码：
+		 *     1、org.springframework.boot.context.logging.LoggingApplicationListener
+		 *     2、org.springframework.boot.autoconfigure.BackgroundPreinitializer
+		 *     3、org.springframework.boot.context.config.DelegatingApplicationListener
+		 *     4、?
+		 *     5、?
+		 *
+		 * 4、initialMulticaster 可以看到是 SimpleApplicationEventMulticaster 类型的对象
+		 *   主要两个方法，一个是广播事件，一个是执行 listener 的 onApplicationEvent 方法
+		 *
+		 */
 		multicastInitialEvent(new ApplicationStartingEvent(bootstrapContext, this.application, this.args));
 	}
 
