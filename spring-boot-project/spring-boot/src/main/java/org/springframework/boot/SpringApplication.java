@@ -254,16 +254,17 @@ public class SpringApplication {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 确定加载什么类型的 ApplicationContext，通过尝试加载不同的类来确定
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
 		this.bootstrapRegistryInitializers = new ArrayList<>(
 				getSpringFactoriesInstances(BootstrapRegistryInitializer.class));
-		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
-		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
-		this.mainApplicationClass = deduceMainApplicationClass();
+		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class)); // TODO Initializers 是做什么用的？
+		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class)); // TODO 为什么要把 Initializers 和 Listeners 先筛选出来？
+		this.mainApplicationClass = deduceMainApplicationClass(); // 利用异常堆栈信息来探测启动 main 方法以及对应的类
 	}
 
 	private Class<?> deduceMainApplicationClass() {
-		try {
+		try { // 利用异常堆栈信息来探测启动 main 方法以及对应的类
 			StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
 			for (StackTraceElement stackTraceElement : stackTrace) {
 				if ("main".equals(stackTraceElement.getMethodName())) {
@@ -296,7 +297,7 @@ public class SpringApplication {
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
 			configureIgnoreBeanInfo(environment);
 			Banner printedBanner = printBanner(environment);
-			context = createApplicationContext();
+			context = createApplicationContext(); // 根据 Jar 包的加载情况，创建不同的 ApplicationContext
 			context.setApplicationStartup(this.applicationStartup);
 			prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
 			refreshContext(context);
@@ -400,7 +401,7 @@ public class SpringApplication {
 		}
 		refresh(context);
 	}
-
+	// TODO 这是有何用？
 	private void configureHeadlessProperty() {
 		System.setProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS,
 				System.getProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, Boolean.toString(this.headless)));
