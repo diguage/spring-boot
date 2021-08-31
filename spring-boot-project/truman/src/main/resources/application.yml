@@ -1,0 +1,12 @@
+server:
+  port: 8989
+  tomcat:
+    uri-encoding: utf-8
+  time-zone: GMT+8
+
+spring:
+  mvc:
+    format:
+      date: yyyy-MM-dd
+      time: HH:mm:ss.SSS
+      date-time: yyyy-MM-dd'T'HH:mm:ss.SSSZ

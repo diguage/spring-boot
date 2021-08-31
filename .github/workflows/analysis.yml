@@ -1,0 +1,91 @@
+name: Deploy GitHub Pages
+on:
+  push:
+    branches:
+      - analysis
+jobs:
+  deploy-gh-pages:
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/actions/setup-node
+      - name: Setup Node.js 🕸
+        uses: actions/setup-node@v4
+        with:
+          # https://github.com/nvm-sh/nvm#long-term-support
+          node-version: 'lts/*'
+
+      # https://github.com/actions/checkout
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          ref: analysis
+          persist-credentials: false
+
+      # https://github.com/actions/setup-java
+      - name: Set up JDK 17 ☕️
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+
+      - name: Install Graphviz 🐰
+        run: |
+          sudo apt update -y -m
+          sudo apt install -y graphviz
+
+      - name: Build 🔧
+        continue-on-error: true
+        run: ./gradlew :spring-boot-project:truman:asciidoctor
+
+#      - name: Custom Code Style 🐦
+#        run: |
+#          sudo apt install -y sed
+#          sed -i 's/<\/head>/<style>p>code{color: #d14 !important;background-color: #f5f5f5 !important;border: 1px solid #e1e1e8;white-space: nowrap;border-radius: 3px;}<\/style>\n<\/head>/' truman/build/docs/asciidoc/index.html
+
+      # https://goalsmashers.github.io/css-minification-benchmark/
+      - name: Compress CSS 🍭
+        run: |
+          # https://github.com/parcel-bundler/lightningcss
+          npm install -g cssnano-cli
+          # Multiple HTML page
+          cd truman/build/docs/asciidoc/css
+          for f in `find . -name "*.css"`;
+          do
+            if [[ $f == *asciidoctor.css ]]; then
+              echo -e '\na{text-decoration:none;}p>code,strong>code{color: #d14 !important;background-color: #f5f5f5 !important;border: 1px solid #e1e1e8;}' >> $f
+            fi
+            fn="${f%.*}.min.css";
+            echo  "compress $f"
+            cssnano $f $fn;
+            rm -rf $f;
+            mv $fn $f
+          done
+
+#      - name: Compress HTML 🦄
+#        run: |
+#          npm install html-minifier --global
+#          cd truman/build/docs/asciidoc
+#          echo '{"caseSensitive":true,
+#                 "collapseBooleanAttributes":true,
+#                 "keepClosingSlash":true,
+#                 "processConditionalComments":true,
+#                 "removeComments":true,
+#                 "removeEmptyAttributes":true,
+#                 "removeRedundantAttributes":true,
+#                 "removeScriptTypeAttributes":true,
+#                 "removeStyleLinkTypeAttributes":true,
+#                 "sortAttributes":true,
+#                 "sortClassName":true,
+#                 "useShortDoctype":true}' >> html-minifier.config.json
+#          html-minifier -c html-minifier.config.json index.html -o index.min.htm
+#          rm -rf *.html .asciidoctor
+#          mv index.min.htm index.html
+
+      # https://github.com/JamesIves/github-pages-deploy-action
+      - name: Deploy 🚀
+        continue-on-error: true
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: dgh-pages # The branch the action should deploy to.
+          folder: spring-boot-project/truman/build/docs/asciidoc # The folder the action should deploy.
+          single-commit: true
