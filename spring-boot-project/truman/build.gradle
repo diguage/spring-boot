@@ -61,8 +61,8 @@ asciidoctor {
 asciidoctorj {
 	requires 'rouge'
 	// https://github.com/owenh000/asciidoctor-multipage
-	// requires 'asciidoctor-multipage'
-	// requires 'asciidoctor-comment-links'
+	requires 'asciidoctor-multipage'
+	requires 'asciidoctor-comment-links'
 
 	def sourceAttr = 'linenums,indent=0,subs="attributes,verbatim"'
 
@@ -94,7 +94,7 @@ asciidoctorj {
             homepage: 'https://www.diguage.com',
 			plantumlconfig: "${getProjectOperations().projectDir}/cfg/plantuml.cfg",
 			scripts: "cjk",
-			// backend: 'multipage_html5',
+			backend: 'multipage_html5',
 
             'boot-version': project.version,
             'source_attr': sourceAttr,
