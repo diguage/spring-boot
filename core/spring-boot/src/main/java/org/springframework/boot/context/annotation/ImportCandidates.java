@@ -68,6 +68,7 @@ public final class ImportCandidates implements Iterable<String> {
 		return this.candidates;
 	}
 
+	// tag::load[]
 	/**
 	 * Loads the names of import candidates from the classpath. The names of the import
 	 * candidates are stored in files named
@@ -126,6 +127,7 @@ public final class ImportCandidates implements Iterable<String> {
 			throw new IllegalArgumentException("Unable to load configurations from location [" + url + "]", ex);
 		}
 	}
+	// end::load[]
 
 	private static String stripComment(String line) {
 		int commentStart = line.indexOf(COMMENT_START);

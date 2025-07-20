@@ -1,0 +1,44 @@
+= Spring Boot 源码分析^Alpha^
+include::{includedir}/_attributes.adoc[]
+
+:!sectnums:
+
+include::{includedir}/preface.adoc[leveloffset=+1]
+
+:sectnums:
+
+== Spring Boot 重点
+
+. 零配置
+. 启动流程。重点利用了 Spring 的 `ApplicationEvent` 订阅/发布模式。
+. 自动配置
+. 运维
+
+
+== 启动流程
+
+[{java_src_attr}]
+----
+include::{truman_src_dir}/TrumanApplication.java[]
+----
+
+plantuml::puml/SpringApplication-run.puml[{diagram_attr}]
+
+
+[{java_src_attr}]
+----
+include::{truman_src_dir}/MockBeanTest.java[]
+----
+
+== `.imports` 扩展机制
+
+
+Spring Boot 3 开始，支持以 `.imports` 为文件扩展名的扩展机制。扩展机制的入口在 `org.springframework.boot.autoconfigure.AutoConfigurationImportSelector.selectImports`。扩展机制的核心是以相应的文件名在类路径上去查找资源，找到后加载文件中包含的类。加载文件的过程如下：
+
+.`ImportCandidates.load`
+[{java_src_attr}]
+----
+include::{core_src_dir}/context/annotation/ImportCandidates.java[tag=load]
+----
+
+解析到这些类之后，最后是通过 Spring 的 `@Import` 扩展机制，将这些类作为 Bean 加入到 Spring 容器中。

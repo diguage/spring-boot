@@ -487,3 +487,5 @@ include ":integration-test:spring-boot-test-integration-tests"
 
 include ":system-test:spring-boot-deployment-system-tests"
 include ":system-test:spring-boot-image-system-tests"
+
+include "starter:truman"
